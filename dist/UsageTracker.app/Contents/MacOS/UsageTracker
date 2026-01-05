@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$APP_DIR/../.." && pwd)"
+
+PYTHON_BIN=$(command -v python3 || true)
+if [ -z "$PYTHON_BIN" ]; then
+  osascript -e 'display alert "Usage Tracker" message "python3 is required (install via Xcode Command Line Tools or python.org)."'
+  exit 1
+fi
+
+GUI_SCRIPT="$REPO_ROOT/gui_usage_tracker.py"
+if [ ! -f "$GUI_SCRIPT" ]; then
+  osascript -e 'display alert "Usage Tracker" message "gui_usage_tracker.py not found. Keep the app next to the repository files."'
+  exit 1
+fi
+
+if [ -f "$REPO_ROOT/.env" ]; then
+  LOAD_ENV="set -a; source \"$REPO_ROOT/.env\"; set +a; "
+else
+  LOAD_ENV=""
+fi
+
+COMMAND="cd \"$REPO_ROOT\"; ${LOAD_ENV}\"$PYTHON_BIN\" \"$GUI_SCRIPT\" \"$@\""
+ESCAPED_COMMAND=$(printf '%s' "$COMMAND" | sed 's/\\/\\\\/g; s/"/\\"/g')
+
+osascript <<EOF
+do shell script "$ESCAPED_COMMAND"
+EOF
