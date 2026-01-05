@@ -22,17 +22,6 @@ Run the tracker from your terminal:
 python usage_tracker.py --api-key-id key_ABC123
 ```
 
-Launch the no-Terminal GUI (Tk window) instead:
-```bash
-python gui_usage_tracker.py
-```
-
-You can also place your credentials in a local `.env` file so the CLI/app can read them automatically:
-```bash
-OPENAI_ADMIN_KEY=key_admin_...
-OPENAI_API_KEY_ID=key_ABC123
-```
-
 Useful options:
 - `--lookback-hours`: Hours of usage to include (default: 6).
 - `--bucket-width`: Aggregation bucket (`1m`, `1h`, or `1d`; default: `1h`).
@@ -43,24 +32,3 @@ Useful options:
 - `--spike-request-rate`: Request delta per minute that triggers a spike alert (default: 120 requests/min).
 
 Press `Ctrl+C` to exit the live view. The display shows per-model input, output, cached input tokens, request counts, totals, and an estimated cost based on the selected tier/model pricing tables above. The window updates on each refresh to keep the view current, and will surface in-line alerts when token or request rates spike between refreshes.
-
-## macOS double-click app (no Terminal)
-If you just want an installer you can build once and then open like any other Mac app:
-
-1. Make sure Python 3 is installed on your Mac and install dependencies once:
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. Populate a `.env` file in the repository folder with your credentials so the app can launch without prompts:
-   ```bash
-   OPENAI_ADMIN_KEY=key_admin_...
-   OPENAI_API_KEY_ID=key_ABC123
-   ```
-3. Build the double-clickable app **and** DMG installer in one command (macOS only):
-   ```bash
-   ./scripts/build_installer.sh
-   ```
-   This wraps the existing `create_mac_app.sh` and `package_mac_app.sh` steps and leaves you with `dist/UsageTracker.app` plus `dist/UsageTracker.dmg`.
-4. Open `dist/UsageTracker.dmg` and drag `UsageTracker.app` into Applications.
-5. Ensure a `.env` (or the included `.env.example` renamed to `.env`) lives next to the app or in the same folder you launch it from so the GUI can read `OPENAI_ADMIN_KEY` and `OPENAI_API_KEY_ID` automatically.
-6. Double-click `UsageTracker.app` from Applications. The GUI opens and starts polling usage with the credentials from `.env`; no terminal needed after the DMG is built.

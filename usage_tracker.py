@@ -24,29 +24,6 @@ COMPLETIONS_USAGE_URL = "https://api.openai.com/v1/organization/usage/completion
 console = Console()
 
 
-def load_env_file(path: str = ".env") -> None:
-    """Populate os.environ from a simple KEY=VALUE .env file if present."""
-
-    env_path = os.path.expanduser(path)
-    if not os.path.isfile(env_path):
-        return
-
-    try:
-        with open(env_path, "r", encoding="utf-8") as env_file:
-            for raw_line in env_file:
-                line = raw_line.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                key, value = line.split("=", 1)
-                key = key.strip()
-                value = value.strip().strip('"').strip("'")
-                if key and key not in os.environ:
-                    os.environ[key] = value
-    except OSError:
-        # Ignore env file errors and fall back to existing environment/CLI args.
-        return
-
-
 # USD per 1M tokens per tier/model. Cached defaults to input when omitted.
 COST_RATES: Dict[str, Dict[str, Tuple[float, Optional[float], Optional[float]]]] = {
     "standard": {
@@ -161,10 +138,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--api-key-id",
         dest="api_key_id",
-        help=(
-            "The project API key ID to track (looks like key_...). "
-            "Falls back to OPENAI_API_KEY_ID if not provided."
-        ),
+        required=True,
+        help="The project API key ID to track (looks like key_...).",
     )
     parser.add_argument(
         "--lookback-hours",
@@ -223,16 +198,6 @@ def resolve_admin_key(cli_key: Optional[str]) -> str:
         )
         sys.exit(1)
     return key
-
-
-def resolve_api_key_id(cli_key_id: Optional[str]) -> str:
-    key_id = cli_key_id or os.getenv("OPENAI_API_KEY_ID")
-    if not key_id:
-        console.print(
-            "[red]No project API key ID supplied. Provide --api-key-id or set OPENAI_API_KEY_ID.[/red]"
-        )
-        sys.exit(1)
-    return key_id
 
 
 def time_window(hours: int) -> Dict[str, int]:
@@ -475,16 +440,14 @@ def detect_spikes(
 
 
 def main() -> None:
-    load_env_file()
     args = parse_args()
     admin_key = resolve_admin_key(args.admin_key)
-    api_key_id = resolve_api_key_id(args.api_key_id)
     interval = clamp_interval(args.interval)
     session = requests.Session()
 
     console.print(
         "Tracking usage for [bold]OpenAI project API key[/bold] "
-        f"[magenta]{api_key_id}[/magenta] (refresh {interval}s) on tier [cyan]{args.tier}[/cyan]."
+        f"[magenta]{args.api_key_id}[/magenta] (refresh {interval}s) on tier [cyan]{args.tier}[/cyan]."
     )
     console.print("Press Ctrl+C to exit.\n")
 
@@ -498,7 +461,7 @@ def main() -> None:
                     usage_rows = fetch_usage(
                         session,
                         admin_key=admin_key,
-                        api_key_id=api_key_id,
+                        api_key_id=args.api_key_id,
                         window=window,
                         bucket_width=args.bucket_width,
                     )
@@ -512,13 +475,13 @@ def main() -> None:
                     )
                     prev_totals = summary["totals"]
                     live.update(
-                            render_usage(
-                                summary,
-                                window,
-                                api_key_id,
-                                tier=args.tier,
-                                alerts=alerts,
-                            )
+                        render_usage(
+                            summary,
+                            window,
+                            args.api_key_id,
+                            tier=args.tier,
+                            alerts=alerts,
+                        )
                     )
                 except Exception as exc:  # pylint: disable=broad-except
                     live.update(render_error(str(exc)))
